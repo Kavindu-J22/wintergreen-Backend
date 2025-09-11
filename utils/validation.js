@@ -4,9 +4,15 @@ const { body, param, query, validationResult } = require('express-validator');
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map(error => error.msg);
+    const detailedMessage = errorMessages.length === 1
+      ? errorMessages[0]
+      : `Validation failed: ${errorMessages.join(', ')}`;
+
     return res.status(400).json({
-      message: 'Validation failed',
-      errors: errors.array()
+      message: detailedMessage,
+      errors: errors.array(),
+      validationFailed: true
     });
   }
   next();
@@ -17,39 +23,54 @@ const validationRules = {
   // User validation rules
   userRegistration: [
     body('fullName')
+      .notEmpty()
+      .withMessage('Full name is required')
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Full name must be between 2 and 100 characters'),
-    
+
     body('nicOrPassport')
+      .notEmpty()
+      .withMessage('NIC or Passport is required')
       .trim()
       .isLength({ min: 5, max: 20 })
       .withMessage('NIC or Passport must be between 5 and 20 characters'),
-    
+
     body('contactNumber')
+      .notEmpty()
+      .withMessage('Contact number is required')
       .trim()
       .matches(/^[0-9+\-\s()]+$/)
       .withMessage('Please enter a valid contact number'),
-    
+
     body('email')
+      .notEmpty()
+      .withMessage('Email is required')
       .isEmail()
       .normalizeEmail()
       .withMessage('Please enter a valid email address'),
-    
+
     body('username')
+      .notEmpty()
+      .withMessage('Username is required')
       .trim()
       .isLength({ min: 3, max: 30 })
+      .withMessage('Username must be 3-30 characters')
       .matches(/^[a-zA-Z0-9_]+$/)
-      .withMessage('Username must be 3-30 characters and contain only letters, numbers, and underscores'),
-    
+      .withMessage('Username can only contain letters, numbers, and underscores'),
+
     body('password')
+      .notEmpty()
+      .withMessage('Password is required')
       .isLength({ min: 6 })
       .withMessage('Password must be at least 6 characters long'),
-    
+
     body('role')
-      .isIn(['admin', 'moderator', 'staff'])
-      .withMessage('Role must be one of: admin, moderator, staff'),
-    
+      .notEmpty()
+      .withMessage('Role is required')
+      .isIn(['superAdmin', 'admin', 'moderator', 'staff'])
+      .withMessage('Role must be one of: superAdmin, admin, moderator, staff'),
+
     body('branch')
       .optional()
       .isMongoId()
@@ -134,7 +155,7 @@ const validationRules = {
   ],
 
   userId: [
-    param('userId')
+    param('id')
       .isMongoId()
       .withMessage('Invalid user ID format')
   ],

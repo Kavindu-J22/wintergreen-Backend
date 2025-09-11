@@ -236,14 +236,22 @@ router.post('/', authenticateToken, requireRole('superAdmin', 'admin'), [
 
     // Validate branch access for non-superAdmin users
     if (req.user.role !== 'superAdmin') {
-      if (!branch || branch !== req.user.branch._id.toString()) {
-        return res.status(400).json({ message: 'Invalid branch selection' });
+      if (!branch) {
+        return res.status(400).json({ message: 'Branch selection is required' });
       }
-      
+      if (branch !== req.user.branch._id.toString()) {
+        return res.status(400).json({ message: 'You can only create users in your own branch' });
+      }
+
       // Admin cannot create other admins
       if (role === 'admin') {
         return res.status(403).json({ message: 'Cannot create admin users' });
       }
+    }
+
+    // For superAdmin creating non-superAdmin users, branch is required
+    if (req.user.role === 'superAdmin' && role !== 'superAdmin' && !branch) {
+      return res.status(400).json({ message: 'Branch selection is required for non-superAdmin users' });
     }
 
     // Check if branch exists and is active
