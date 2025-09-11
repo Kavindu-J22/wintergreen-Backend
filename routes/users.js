@@ -26,11 +26,13 @@ router.get('/branch-users', authenticateToken, async (req, res) => {
     if (req.user.role === 'superAdmin') {
       // SuperAdmin can see all users
     } else if (req.user.role === 'admin') {
-      // Admin can see users in their branch
-      query.branch = req.user.branchId;
+      // Admin can see users in their branch, but not superAdmin users
+      query.branch = req.user.branch._id;
+      query.role = { $ne: 'superAdmin' };
     } else {
-      // Moderators and staff can only see users in their branch
-      query.branch = req.user.branchId;
+      // Moderators and staff can only see users in their branch, but not superAdmin users
+      query.branch = req.user.branch._id;
+      query.role = { $ne: 'superAdmin' };
     }
 
     // Add search filter
@@ -42,9 +44,14 @@ router.get('/branch-users', authenticateToken, async (req, res) => {
       ];
     }
 
-    // Add role filter
+    // Add role filter (but preserve the superAdmin exclusion for non-superAdmin users)
     if (role) {
-      query.role = role;
+      if (req.user.role === 'superAdmin') {
+        query.role = role;
+      } else {
+        // For non-superAdmin users, combine role filter with superAdmin exclusion
+        query.role = { $and: [{ $ne: 'superAdmin' }, { $eq: role }] };
+      }
     }
 
     const users = await User.find(query)
@@ -317,23 +324,29 @@ router.put('/:id', authenticateToken, requireRole('superAdmin', 'admin'), [
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check access permissions for admin
+    // Check access permissions
     if (req.user.role === 'admin') {
       // Admin can only update users in their branch
       if (user.branch.toString() !== req.user.branch._id.toString()) {
         return res.status(403).json({ message: 'Access denied to this user' });
       }
-      
-      // Admin cannot update other admins
+
+      // Admin cannot update other admins (except themselves)
       if (user.role === 'admin' && user._id.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Cannot update other admin users' });
       }
-      
-      // Admin cannot change role to admin
-      if (role === 'admin') {
-        return res.status(403).json({ message: 'Cannot set role to admin' });
+
+      // Admin cannot update superAdmin users
+      if (user.role === 'superAdmin') {
+        return res.status(403).json({ message: 'Cannot update super admin users' });
+      }
+
+      // Admin cannot change role to admin or superAdmin
+      if (role === 'admin' || role === 'superAdmin') {
+        return res.status(403).json({ message: 'Cannot set role to admin or superAdmin' });
       }
     }
+    // SuperAdmin has no restrictions - can update any user and set any role
 
     // Check for existing email or NIC/Passport (excluding current user)
     if (email || nicOrPassport) {

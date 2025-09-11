@@ -83,8 +83,8 @@ const validationRules = {
     
     body('role')
       .optional()
-      .isIn(['admin', 'moderator', 'staff'])
-      .withMessage('Role must be one of: admin, moderator, staff')
+      .isIn(['superAdmin', 'admin', 'moderator', 'staff'])
+      .withMessage('Role must be one of: superAdmin, admin, moderator, staff')
   ],
 
   // Login validation rules

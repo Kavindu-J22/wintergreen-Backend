@@ -214,7 +214,7 @@ router.patch('/:id/toggle-status', authenticateToken, requireSuperAdmin, validat
         id: branch._id,
         name: branch.name,
         isActive: branch.isActive,
-        userCount: await branch.getActiveUserCount(),
+        userCount: await branch.getActiveUsersCount(),
         createdAt: branch.createdAt,
         updatedAt: branch.updatedAt
       }
