@@ -49,8 +49,12 @@ router.get('/branch-users', authenticateToken, async (req, res) => {
       if (req.user.role === 'superAdmin') {
         query.role = role;
       } else {
-        // For non-superAdmin users, combine role filter with superAdmin exclusion
-        query.role = { $and: [{ $ne: 'superAdmin' }, { $eq: role }] };
+        // For non-superAdmin users, ensure both role match and superAdmin exclusion
+        if (role === 'superAdmin') {
+          // Non-superAdmin users cannot see superAdmin users
+          return res.status(403).json({ message: 'Access denied' });
+        }
+        query.role = role;
       }
     }
 
@@ -234,6 +238,12 @@ router.post('/', authenticateToken, requireRole('superAdmin', 'admin'), [
   try {
     const { fullName, nicOrPassport, contactNumber, email, username, password, role, branch } = req.body;
 
+    console.log('User creation request:', {
+      body: req.body,
+      userRole: req.user.role,
+      userBranch: req.user.branch?._id
+    });
+
     // Validate branch access for non-superAdmin users
     if (req.user.role !== 'superAdmin') {
       if (!branch) {
@@ -325,6 +335,12 @@ router.put('/:id', authenticateToken, requireRole('superAdmin', 'admin'), [
 ], async (req, res) => {
   try {
     const { fullName, nicOrPassport, contactNumber, email, role, isActive } = req.body;
+
+    console.log('User update request:', {
+      userId: req.params.id,
+      body: req.body,
+      userRole: req.user.role
+    });
 
     const user = await User.findById(req.params.id);
 

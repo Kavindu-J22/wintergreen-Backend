@@ -79,33 +79,38 @@ const validationRules = {
 
   userUpdate: [
     body('fullName')
-      .optional()
+      .optional({ checkFalsy: true })
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Full name must be between 2 and 100 characters'),
-    
+
     body('nicOrPassport')
-      .optional()
+      .optional({ checkFalsy: true })
       .trim()
       .isLength({ min: 5, max: 20 })
       .withMessage('NIC or Passport must be between 5 and 20 characters'),
-    
+
     body('contactNumber')
-      .optional()
+      .optional({ checkFalsy: true })
       .trim()
       .matches(/^[0-9+\-\s()]+$/)
       .withMessage('Please enter a valid contact number'),
-    
+
     body('email')
-      .optional()
+      .optional({ checkFalsy: true })
       .isEmail()
       .normalizeEmail()
       .withMessage('Please enter a valid email address'),
-    
+
     body('role')
-      .optional()
+      .optional({ checkFalsy: true })
       .isIn(['superAdmin', 'admin', 'moderator', 'staff'])
-      .withMessage('Role must be one of: superAdmin, admin, moderator, staff')
+      .withMessage('Role must be one of: superAdmin, admin, moderator, staff'),
+
+    body('isActive')
+      .optional()
+      .isBoolean()
+      .withMessage('isActive must be a boolean value')
   ],
 
   // Login validation rules
