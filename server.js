@@ -49,6 +49,7 @@ connectDB();
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/branches', require('./routes/branches'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/courses', require('./routes/courses'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Health check endpoint

@@ -146,6 +146,152 @@ const validationRules = {
       .withMessage('Branch name must be between 2 and 100 characters')
   ],
 
+  // Course validation rules
+  courseCreate: [
+    body('title')
+      .notEmpty()
+      .withMessage('Course title is required')
+      .trim()
+      .isLength({ min: 3, max: 200 })
+      .withMessage('Course title must be between 3 and 200 characters'),
+
+    body('description')
+      .notEmpty()
+      .withMessage('Course description is required')
+      .trim()
+      .isLength({ min: 10, max: 1000 })
+      .withMessage('Course description must be between 10 and 1000 characters'),
+
+    body('duration')
+      .notEmpty()
+      .withMessage('Course duration is required')
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Course duration cannot exceed 100 characters'),
+
+    body('price')
+      .notEmpty()
+      .withMessage('Course price is required')
+      .isFloat({ min: 0, max: 1000000 })
+      .withMessage('Course price must be between 0 and 1,000,000 LKR'),
+
+    body('maxStudents')
+      .notEmpty()
+      .withMessage('Maximum students is required')
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Maximum students must be between 1 and 100'),
+
+    body('schedule')
+      .notEmpty()
+      .withMessage('Course schedule is required')
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Course schedule cannot exceed 200 characters'),
+
+    body('instructor')
+      .notEmpty()
+      .withMessage('Course instructor is required')
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Instructor name cannot exceed 100 characters'),
+
+    body('nextStart')
+      .notEmpty()
+      .withMessage('Next start date is required')
+      .isISO8601()
+      .withMessage('Next start date must be a valid date'),
+
+    body('status')
+      .optional()
+      .isIn(['Draft', 'Active', 'Inactive', 'Completed'])
+      .withMessage('Status must be one of: Draft, Active, Inactive, Completed'),
+
+    body('modules')
+      .optional()
+      .isArray()
+      .withMessage('Modules must be an array'),
+
+    body('modules.*')
+      .optional()
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Module name cannot exceed 200 characters'),
+
+    body('branch')
+      .notEmpty()
+      .withMessage('Branch is required')
+      .isMongoId()
+      .withMessage('Branch must be a valid ID')
+  ],
+
+  courseUpdate: [
+    body('title')
+      .optional({ checkFalsy: true })
+      .trim()
+      .isLength({ min: 3, max: 200 })
+      .withMessage('Course title must be between 3 and 200 characters'),
+
+    body('description')
+      .optional({ checkFalsy: true })
+      .trim()
+      .isLength({ min: 10, max: 1000 })
+      .withMessage('Course description must be between 10 and 1000 characters'),
+
+    body('duration')
+      .optional({ checkFalsy: true })
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Course duration cannot exceed 100 characters'),
+
+    body('price')
+      .optional({ checkFalsy: true })
+      .isFloat({ min: 0, max: 1000000 })
+      .withMessage('Course price must be between 0 and 1,000,000 LKR'),
+
+    body('maxStudents')
+      .optional({ checkFalsy: true })
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Maximum students must be between 1 and 100'),
+
+    body('schedule')
+      .optional({ checkFalsy: true })
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Course schedule cannot exceed 200 characters'),
+
+    body('instructor')
+      .optional({ checkFalsy: true })
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Instructor name cannot exceed 100 characters'),
+
+    body('nextStart')
+      .optional({ checkFalsy: true })
+      .isISO8601()
+      .withMessage('Next start date must be a valid date'),
+
+    body('status')
+      .optional({ checkFalsy: true })
+      .isIn(['Draft', 'Active', 'Inactive', 'Completed'])
+      .withMessage('Status must be one of: Draft, Active, Inactive, Completed'),
+
+    body('modules')
+      .optional()
+      .isArray()
+      .withMessage('Modules must be an array'),
+
+    body('modules.*')
+      .optional()
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Module name cannot exceed 200 characters'),
+
+    body('branch')
+      .optional({ checkFalsy: true })
+      .isMongoId()
+      .withMessage('Branch must be a valid ID')
+  ],
+
   // Parameter validation rules
   mongoId: [
     param('id')
