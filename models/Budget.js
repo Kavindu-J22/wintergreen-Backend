@@ -189,6 +189,18 @@ budgetSchema.statics.getStatistics = async function(branchId, userRole, filters 
   // Apply branch filter
   if (branchId) {
     try {
+      // Validate ObjectId format first
+      if (typeof branchId === 'string' && !mongoose.Types.ObjectId.isValid(branchId)) {
+        console.warn('Invalid branch ID format in Budget.getStatistics:', branchId);
+        return {
+          totalBudgets: 0,
+          totalAllocated: 0,
+          totalSpent: 0,
+          activeBudgets: 0,
+          utilizationRate: 0
+        };
+      }
+
       // Convert to ObjectId if it's a string
       const branchObjectId = typeof branchId === 'string' ? mongoose.Types.ObjectId.createFromHexString(branchId) : branchId;
       matchQuery.branch = branchObjectId;

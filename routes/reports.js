@@ -12,13 +12,19 @@ const XLSX = require('xlsx');
 
 // Helper function to determine branch filter based on user role
 const getBranchFilter = (req) => {
+  const mongoose = require('mongoose');
   let branchFilter = {};
 
   if (req.user.role === 'superAdmin') {
     // SuperAdmin can see all stats or specific branch stats
     const { branchId } = req.query;
-    if (branchId && branchId !== 'all') {
-      branchFilter = { branch: branchId };
+    if (branchId && branchId !== 'all' && branchId !== '') {
+      // Validate ObjectId format
+      if (mongoose.Types.ObjectId.isValid(branchId)) {
+        branchFilter = { branch: branchId };
+      } else {
+        console.warn('Invalid branch ID format in getBranchFilter:', branchId);
+      }
     }
   } else {
     // Other users can only see their branch stats
@@ -83,22 +89,36 @@ router.get('/comprehensive', authenticateToken, async (req, res) => {
       
       // Student statistics
       req.user.role === 'superAdmin'
-        ? Student.getStatistics(req.query.branchId, req.user.role)
+        ? Student.getStatistics(
+            (req.query.branchId && req.query.branchId !== 'all' && req.query.branchId !== '') ? req.query.branchId : null,
+            req.user.role
+          )
         : Student.getStatistics(req.user.branch._id, req.user.role),
 
       // Course statistics
       req.user.role === 'superAdmin'
-        ? Course.getStatistics(req.query.branchId, req.user.role)
+        ? Course.getStatistics(
+            (req.query.branchId && req.query.branchId !== 'all' && req.query.branchId !== '') ? req.query.branchId : null,
+            req.user.role
+          )
         : Course.getStatistics(req.user.branch._id, req.user.role),
 
       // Transaction statistics
       req.user.role === 'superAdmin'
-        ? Transaction.getStatistics(req.query.branchId, req.user.role, { startDate: req.query.startDate, endDate: req.query.endDate })
+        ? Transaction.getStatistics(
+            (req.query.branchId && req.query.branchId !== 'all' && req.query.branchId !== '') ? req.query.branchId : null,
+            req.user.role,
+            { startDate: req.query.startDate, endDate: req.query.endDate }
+          )
         : Transaction.getStatistics(req.user.branch._id, req.user.role, { startDate: req.query.startDate, endDate: req.query.endDate }),
 
       // Budget statistics
       req.user.role === 'superAdmin'
-        ? Budget.getStatistics(req.query.branchId, req.user.role, { period: req.query.period })
+        ? Budget.getStatistics(
+            (req.query.branchId && req.query.branchId !== 'all' && req.query.branchId !== '') ? req.query.branchId : null,
+            req.user.role,
+            { period: req.query.period }
+          )
         : Budget.getStatistics(req.user.branch._id, req.user.role, { period: req.query.period })
     ]);
 
@@ -112,9 +132,12 @@ router.get('/comprehensive', authenticateToken, async (req, res) => {
 
     // Get branch info if applicable
     let branchInfo = null;
-    if (req.user.role === 'superAdmin' && req.query.branchId && req.query.branchId !== 'all') {
+    if (req.user.role === 'superAdmin' && req.query.branchId && req.query.branchId !== 'all' && req.query.branchId !== '') {
       try {
-        branchInfo = await Branch.findById(req.query.branchId);
+        const mongoose = require('mongoose');
+        if (mongoose.Types.ObjectId.isValid(req.query.branchId)) {
+          branchInfo = await Branch.findById(req.query.branchId);
+        }
       } catch (error) {
         console.error('Error finding branch:', error);
       }

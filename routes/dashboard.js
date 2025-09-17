@@ -16,14 +16,21 @@ router.get('/stats', authenticateToken, async (req, res) => {
     if (req.user.role === 'superAdmin') {
       // SuperAdmin can see all stats or specific branch stats
       const { branchId } = req.query;
-      if (branchId && branchId !== 'all') {
+      if (branchId && branchId !== 'all' && branchId !== '') {
         try {
+          // Validate ObjectId format
+          const mongoose = require('mongoose');
+          if (!mongoose.Types.ObjectId.isValid(branchId)) {
+            return res.status(400).json({ message: 'Invalid branch ID format' });
+          }
+
           branchFilter = { branch: branchId };
           branchInfo = await Branch.findById(branchId);
           if (!branchInfo) {
             return res.status(404).json({ message: 'Branch not found' });
           }
         } catch (error) {
+          console.error('Branch validation error:', error);
           return res.status(400).json({ message: 'Invalid branch ID' });
         }
       }

@@ -152,6 +152,20 @@ transactionSchema.statics.getStatistics = async function(branchId, userRole, fil
   // Apply branch filter
   if (branchId) {
     try {
+      // Validate ObjectId format first
+      if (typeof branchId === 'string' && !mongoose.Types.ObjectId.isValid(branchId)) {
+        console.warn('Invalid branch ID format in Transaction.getStatistics:', branchId);
+        return {
+          totalTransactions: 0,
+          totalRevenue: 0,
+          totalExpenses: 0,
+          netIncome: 0,
+          averageTransactionAmount: 0,
+          revenueByType: {},
+          expensesByType: {}
+        };
+      }
+
       // Convert to ObjectId if it's a string
       const branchObjectId = typeof branchId === 'string' ? mongoose.Types.ObjectId.createFromHexString(branchId) : branchId;
       matchQuery.branch = branchObjectId;

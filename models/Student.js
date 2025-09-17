@@ -193,6 +193,17 @@ studentSchema.statics.getStatistics = async function(branchId = null, userRole =
 
   if (branchId) {
     try {
+      // Validate ObjectId format first
+      if (typeof branchId === 'string' && !mongoose.Types.ObjectId.isValid(branchId)) {
+        console.warn('Invalid branch ID format in Student.getStatistics:', branchId);
+        return {
+          totalStudents: 0,
+          activeStudents: 0,
+          graduatedStudents: 0,
+          averageGPA: 0
+        };
+      }
+
       // Convert to ObjectId if it's a string
       const branchObjectId = typeof branchId === 'string' ? mongoose.Types.ObjectId.createFromHexString(branchId) : branchId;
       matchQuery.branch = branchObjectId;

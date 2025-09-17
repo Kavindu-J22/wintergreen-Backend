@@ -6,17 +6,30 @@ const { validationRules, handleValidationErrors } = require('../utils/validation
 const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
 
 // @route   GET /api/branches
-// @desc    Get all branches
-// @access  Private (SuperAdmin only)
-router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {
+// @desc    Get branches (SuperAdmin: all branches, Others: their branch only)
+// @access  Private
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 10, search = '' } = req.query;
     const skip = (page - 1) * limit;
 
-    // Build search query
-    const searchQuery = search ? {
-      name: { $regex: search, $options: 'i' }
-    } : {};
+    // Build search query based on user role
+    let searchQuery = {};
+
+    if (req.user.role === 'superAdmin') {
+      // SuperAdmin can see all branches
+      searchQuery = search ? {
+        name: { $regex: search, $options: 'i' }
+      } : {};
+    } else {
+      // Other users can only see their own branch
+      searchQuery = {
+        _id: req.user.branch._id
+      };
+      if (search) {
+        searchQuery.name = { $regex: search, $options: 'i' };
+      }
+    }
 
     // Get branches with pagination
     const branches = await Branch.find(searchQuery)
@@ -33,8 +46,12 @@ router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {
       branches.map(async (branch) => {
         const userCount = await branch.getActiveUsersCount();
         return {
-          id: branch._id,
+          _id: branch._id,
+          id: branch._id, // Keep both for compatibility
           name: branch.name,
+          address: branch.address,
+          phone: branch.phone,
+          email: branch.email,
           isActive: branch.isActive,
           userCount,
           createdAt: branch.createdAt,
@@ -70,14 +87,16 @@ router.get('/active', authenticateToken, async (req, res) => {
       // SuperAdmin can see all active branches
       const branches = await Branch.findActive();
       return res.json(branches.map(branch => ({
-        id: branch._id,
+        _id: branch._id,
+        id: branch._id, // Keep both for compatibility
         name: branch.name
       })));
     } else {
       // Other users can only see their assigned branch
       if (user.branch) {
         return res.json([{
-          id: user.branch._id,
+          _id: user.branch._id,
+          id: user.branch._id, // Keep both for compatibility
           name: user.branch.name
         }]);
       } else {
