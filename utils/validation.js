@@ -518,6 +518,205 @@ const validationRules = {
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100')
+  ],
+
+  // Transaction validation rules
+  transactionCreate: [
+    body('type')
+      .notEmpty()
+      .withMessage('Transaction type is required')
+      .isIn(['income', 'expense'])
+      .withMessage('Transaction type must be either income or expense'),
+
+    body('category')
+      .notEmpty()
+      .withMessage('Category is required')
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Category must be between 1 and 100 characters'),
+
+    body('amount')
+      .notEmpty()
+      .withMessage('Amount is required')
+      .isFloat({ min: 0.01, max: 10000000 })
+      .withMessage('Amount must be between 0.01 and 10,000,000'),
+
+    body('description')
+      .notEmpty()
+      .withMessage('Description is required')
+      .trim()
+      .isLength({ min: 1, max: 500 })
+      .withMessage('Description must be between 1 and 500 characters'),
+
+    body('date')
+      .optional()
+      .isISO8601()
+      .withMessage('Date must be a valid date'),
+
+    body('status')
+      .optional()
+      .isIn(['pending', 'completed', 'cancelled'])
+      .withMessage('Status must be one of: pending, completed, cancelled'),
+
+    body('reference')
+      .optional()
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage('Reference cannot exceed 50 characters'),
+
+    body('student')
+      .optional()
+      .isMongoId()
+      .withMessage('Student must be a valid ID'),
+
+    body('course')
+      .optional()
+      .isMongoId()
+      .withMessage('Course must be a valid ID'),
+
+    body('branch')
+      .optional()
+      .isMongoId()
+      .withMessage('Branch must be a valid ID')
+  ],
+
+  transactionUpdate: [
+    body('type')
+      .optional()
+      .isIn(['income', 'expense'])
+      .withMessage('Transaction type must be either income or expense'),
+
+    body('category')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Category must be between 1 and 100 characters'),
+
+    body('amount')
+      .optional()
+      .isFloat({ min: 0.01, max: 10000000 })
+      .withMessage('Amount must be between 0.01 and 10,000,000'),
+
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 500 })
+      .withMessage('Description must be between 1 and 500 characters'),
+
+    body('date')
+      .optional()
+      .isISO8601()
+      .withMessage('Date must be a valid date'),
+
+    body('status')
+      .optional()
+      .isIn(['pending', 'completed', 'cancelled'])
+      .withMessage('Status must be one of: pending, completed, cancelled'),
+
+    body('reference')
+      .optional()
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage('Reference cannot exceed 50 characters'),
+
+    body('student')
+      .optional()
+      .isMongoId()
+      .withMessage('Student must be a valid ID'),
+
+    body('course')
+      .optional()
+      .isMongoId()
+      .withMessage('Course must be a valid ID')
+  ],
+
+  // Budget validation rules
+  budgetCreate: [
+    body('category')
+      .notEmpty()
+      .withMessage('Category is required')
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Category must be between 1 and 100 characters'),
+
+    body('allocated')
+      .notEmpty()
+      .withMessage('Allocated amount is required')
+      .isFloat({ min: 0, max: 100000000 })
+      .withMessage('Allocated amount must be between 0 and 100,000,000'),
+
+    body('period')
+      .notEmpty()
+      .withMessage('Period is required')
+      .isIn(['monthly', 'quarterly', 'yearly'])
+      .withMessage('Period must be one of: monthly, quarterly, yearly'),
+
+    body('startDate')
+      .notEmpty()
+      .withMessage('Start date is required')
+      .isISO8601()
+      .withMessage('Start date must be a valid date'),
+
+    body('endDate')
+      .notEmpty()
+      .withMessage('End date is required')
+      .isISO8601()
+      .withMessage('End date must be a valid date'),
+
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Description cannot exceed 500 characters'),
+
+    body('status')
+      .optional()
+      .isIn(['active', 'inactive', 'completed', 'exceeded'])
+      .withMessage('Status must be one of: active, inactive, completed, exceeded'),
+
+    body('branch')
+      .optional()
+      .isMongoId()
+      .withMessage('Branch must be a valid ID')
+  ],
+
+  budgetUpdate: [
+    body('category')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Category must be between 1 and 100 characters'),
+
+    body('allocated')
+      .optional()
+      .isFloat({ min: 0, max: 100000000 })
+      .withMessage('Allocated amount must be between 0 and 100,000,000'),
+
+    body('period')
+      .optional()
+      .isIn(['monthly', 'quarterly', 'yearly'])
+      .withMessage('Period must be one of: monthly, quarterly, yearly'),
+
+    body('startDate')
+      .optional()
+      .isISO8601()
+      .withMessage('Start date must be a valid date'),
+
+    body('endDate')
+      .optional()
+      .isISO8601()
+      .withMessage('End date must be a valid date'),
+
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Description cannot exceed 500 characters'),
+
+    body('status')
+      .optional()
+      .isIn(['active', 'inactive', 'completed', 'exceeded'])
+      .withMessage('Status must be one of: active, inactive, completed, exceeded')
   ]
 };
 
