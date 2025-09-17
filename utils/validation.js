@@ -308,6 +308,186 @@ const validationRules = {
       })
   ],
 
+  // Student validation rules
+  studentCreate: [
+    body('fullName')
+      .notEmpty()
+      .withMessage('Full name is required')
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage('Full name must be between 2 and 100 characters'),
+
+    body('email')
+      .notEmpty()
+      .withMessage('Email is required')
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Please enter a valid email address'),
+
+    body('phone')
+      .notEmpty()
+      .withMessage('Phone number is required')
+      .trim()
+      .matches(/^[0-9+\-\s()]+$/)
+      .withMessage('Please enter a valid phone number'),
+
+    body('address')
+      .notEmpty()
+      .withMessage('Address is required')
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Address cannot exceed 500 characters'),
+
+    body('dateOfBirth')
+      .notEmpty()
+      .withMessage('Date of birth is required')
+      .isISO8601()
+      .withMessage('Date of birth must be a valid date')
+      .custom((value) => {
+        if (new Date(value) >= new Date()) {
+          throw new Error('Date of birth must be in the past');
+        }
+        return true;
+      }),
+
+    body('course')
+      .notEmpty()
+      .withMessage('Course is required')
+      .isMongoId()
+      .withMessage('Course must be a valid ID'),
+
+    body('modules')
+      .optional()
+      .isArray()
+      .withMessage('Modules must be an array'),
+
+    body('modules.*')
+      .optional()
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Module name cannot exceed 200 characters'),
+
+    body('branch')
+      .optional()
+      .isMongoId()
+      .withMessage('Branch must be a valid ID'),
+
+    body('status')
+      .optional()
+      .isIn(['Active', 'Inactive', 'Suspended', 'Graduated', 'Dropped'])
+      .withMessage('Status must be one of: Active, Inactive, Suspended, Graduated, Dropped'),
+
+    body('enrollmentDate')
+      .optional()
+      .isISO8601()
+      .withMessage('Enrollment date must be a valid date'),
+
+    body('gpa')
+      .optional()
+      .isFloat({ min: 0, max: 4 })
+      .withMessage('GPA must be between 0 and 4.0'),
+
+    body('level')
+      .optional()
+      .isIn(['Beginner', 'Intermediate', 'Advanced'])
+      .withMessage('Level must be one of: Beginner, Intermediate, Advanced'),
+
+    body('certifications')
+      .optional()
+      .isArray()
+      .withMessage('Certifications must be an array'),
+
+    body('certifications.*')
+      .optional()
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Certification name cannot exceed 200 characters')
+  ],
+
+  studentUpdate: [
+    body('fullName')
+      .optional({ checkFalsy: true })
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage('Full name must be between 2 and 100 characters'),
+
+    body('email')
+      .optional({ checkFalsy: true })
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Please enter a valid email address'),
+
+    body('phone')
+      .optional({ checkFalsy: true })
+      .trim()
+      .matches(/^[0-9+\-\s()]+$/)
+      .withMessage('Please enter a valid phone number'),
+
+    body('address')
+      .optional({ checkFalsy: true })
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Address cannot exceed 500 characters'),
+
+    body('dateOfBirth')
+      .optional({ checkFalsy: true })
+      .isISO8601()
+      .withMessage('Date of birth must be a valid date')
+      .custom((value) => {
+        if (value && new Date(value) >= new Date()) {
+          throw new Error('Date of birth must be in the past');
+        }
+        return true;
+      }),
+
+    body('course')
+      .optional({ checkFalsy: true })
+      .isMongoId()
+      .withMessage('Course must be a valid ID'),
+
+    body('modules')
+      .optional()
+      .isArray()
+      .withMessage('Modules must be an array'),
+
+    body('modules.*')
+      .optional()
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Module name cannot exceed 200 characters'),
+
+    body('status')
+      .optional({ checkFalsy: true })
+      .isIn(['Active', 'Inactive', 'Suspended', 'Graduated', 'Dropped'])
+      .withMessage('Status must be one of: Active, Inactive, Suspended, Graduated, Dropped'),
+
+    body('enrollmentDate')
+      .optional({ checkFalsy: true })
+      .isISO8601()
+      .withMessage('Enrollment date must be a valid date'),
+
+    body('gpa')
+      .optional({ checkFalsy: true })
+      .isFloat({ min: 0, max: 4 })
+      .withMessage('GPA must be between 0 and 4.0'),
+
+    body('level')
+      .optional({ checkFalsy: true })
+      .isIn(['Beginner', 'Intermediate', 'Advanced'])
+      .withMessage('Level must be one of: Beginner, Intermediate, Advanced'),
+
+    body('certifications')
+      .optional()
+      .isArray()
+      .withMessage('Certifications must be an array'),
+
+    body('certifications.*')
+      .optional()
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Certification name cannot exceed 200 characters')
+  ],
+
   // Parameter validation rules
   mongoId: [
     param('id')

@@ -153,6 +153,28 @@ courseSchema.statics.findByBranch = function(branchId) {
     .sort({ createdAt: -1 });
 };
 
+// Instance method to enroll a student
+courseSchema.methods.enrollStudent = async function() {
+  if (this.currentEnrolled >= this.maxStudents) {
+    throw new Error('Course is full');
+  }
+
+  this.currentEnrolled += 1;
+  await this.save();
+  return this;
+};
+
+// Instance method to unenroll a student
+courseSchema.methods.unenrollStudent = async function() {
+  if (this.currentEnrolled <= 0) {
+    throw new Error('No students to unenroll');
+  }
+
+  this.currentEnrolled -= 1;
+  await this.save();
+  return this;
+};
+
 // Static method to get course statistics
 courseSchema.statics.getStatistics = async function(branchId = null, userRole = null) {
   let matchQuery = { isActive: true };
