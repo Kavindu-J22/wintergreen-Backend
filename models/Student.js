@@ -188,15 +188,23 @@ studentSchema.statics.findByBranch = function(branchId, userRole = null) {
 
 // Static method to get student statistics
 studentSchema.statics.getStatistics = async function(branchId = null, userRole = null) {
+  const mongoose = require('mongoose');
   let matchQuery = { isActive: true };
-  
+
   if (branchId) {
-    if (userRole === 'superAdmin') {
-      // SuperAdmin can see specific branch stats
-      matchQuery.branch = branchId;
-    } else {
-      // Branch users see only their branch stats
-      matchQuery.branch = branchId;
+    try {
+      // Convert to ObjectId if it's a string
+      const branchObjectId = typeof branchId === 'string' ? mongoose.Types.ObjectId.createFromHexString(branchId) : branchId;
+      matchQuery.branch = branchObjectId;
+    } catch (error) {
+      console.error('Invalid branch ID in Student.getStatistics:', error);
+      // Return empty stats if invalid branch ID
+      return {
+        totalStudents: 0,
+        activeStudents: 0,
+        graduatedStudents: 0,
+        averageGPA: 0
+      };
     }
   }
   

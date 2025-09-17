@@ -186,11 +186,23 @@ budgetSchema.methods.updateSpentAmount = async function() {
 budgetSchema.statics.getStatistics = async function(branchId, userRole, filters = {}) {
   const matchQuery = { isActive: true };
   
-  // Apply branch filter for non-superAdmin users
-  if (userRole !== 'superAdmin' && branchId) {
-    matchQuery.branch = new mongoose.Types.ObjectId(branchId);
-  } else if (branchId) {
-    matchQuery.branch = new mongoose.Types.ObjectId(branchId);
+  // Apply branch filter
+  if (branchId) {
+    try {
+      // Convert to ObjectId if it's a string
+      const branchObjectId = typeof branchId === 'string' ? mongoose.Types.ObjectId.createFromHexString(branchId) : branchId;
+      matchQuery.branch = branchObjectId;
+    } catch (error) {
+      console.error('Invalid branch ID in Budget.getStatistics:', error);
+      // Return empty stats if invalid branch ID
+      return {
+        totalBudgets: 0,
+        totalAllocated: 0,
+        totalSpent: 0,
+        activeBudgets: 0,
+        utilizationRate: 0
+      };
+    }
   }
   
   // Apply date filters if provided

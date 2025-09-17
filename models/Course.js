@@ -177,18 +177,35 @@ courseSchema.methods.unenrollStudent = async function() {
 
 // Static method to get course statistics
 courseSchema.statics.getStatistics = async function(branchId = null, userRole = null) {
+  const mongoose = require('mongoose');
   let matchQuery = { isActive: true };
 
   if (branchId) {
-    if (userRole === 'superAdmin') {
-      // SuperAdmin can see specific branch stats
-      matchQuery.branch = branchId;
-    } else {
-      // Branch users see their branch courses + "All Branches" courses
-      matchQuery.$or = [
-        { branch: branchId },
-        { branch: 'all' }
-      ];
+    try {
+      // Convert to ObjectId if it's a string
+      const branchObjectId = typeof branchId === 'string' ? mongoose.Types.ObjectId.createFromHexString(branchId) : branchId;
+
+      if (userRole === 'superAdmin') {
+        // SuperAdmin can see specific branch stats
+        matchQuery.branch = branchObjectId;
+      } else {
+        // Branch users see their branch courses + "All Branches" courses
+        matchQuery.$or = [
+          { branch: branchObjectId },
+          { branch: 'all' }
+        ];
+      }
+    } catch (error) {
+      console.error('Invalid branch ID in Course.getStatistics:', error);
+      // Return empty stats if invalid branch ID
+      return {
+        totalCourses: 0,
+        activeCourses: 0,
+        totalEnrolled: 0,
+        totalRevenue: 0,
+        averagePrice: 0,
+        totalCapacity: 0
+      };
     }
   }
 

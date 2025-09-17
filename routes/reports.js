@@ -13,17 +13,18 @@ const XLSX = require('xlsx');
 // Helper function to determine branch filter based on user role
 const getBranchFilter = (req) => {
   let branchFilter = {};
-  let branchInfo = null;
 
   if (req.user.role === 'superAdmin') {
     // SuperAdmin can see all stats or specific branch stats
     const { branchId } = req.query;
-    if (branchId) {
+    if (branchId && branchId !== 'all') {
       branchFilter = { branch: branchId };
     }
   } else {
     // Other users can only see their branch stats
-    branchFilter = { branch: req.user.branch._id.toString() };
+    if (req.user.branch && req.user.branch._id) {
+      branchFilter = { branch: req.user.branch._id };
+    }
   }
 
   return branchFilter;
@@ -81,24 +82,24 @@ router.get('/comprehensive', authenticateToken, async (req, res) => {
       ]),
       
       // Student statistics
-      req.user.role === 'superAdmin' 
+      req.user.role === 'superAdmin'
         ? Student.getStatistics(req.query.branchId, req.user.role)
-        : Student.getStatistics(req.user.branch._id.toString(), req.user.role),
-      
+        : Student.getStatistics(req.user.branch._id, req.user.role),
+
       // Course statistics
       req.user.role === 'superAdmin'
         ? Course.getStatistics(req.query.branchId, req.user.role)
-        : Course.getStatistics(req.user.branch._id.toString(), req.user.role),
-      
+        : Course.getStatistics(req.user.branch._id, req.user.role),
+
       // Transaction statistics
       req.user.role === 'superAdmin'
         ? Transaction.getStatistics(req.query.branchId, req.user.role, { startDate: req.query.startDate, endDate: req.query.endDate })
-        : Transaction.getStatistics(req.user.branch._id.toString(), req.user.role, { startDate: req.query.startDate, endDate: req.query.endDate }),
-      
+        : Transaction.getStatistics(req.user.branch._id, req.user.role, { startDate: req.query.startDate, endDate: req.query.endDate }),
+
       // Budget statistics
       req.user.role === 'superAdmin'
         ? Budget.getStatistics(req.query.branchId, req.user.role, { period: req.query.period })
-        : Budget.getStatistics(req.user.branch._id.toString(), req.user.role, { period: req.query.period })
+        : Budget.getStatistics(req.user.branch._id, req.user.role, { period: req.query.period })
     ]);
 
     // Process user role distribution
@@ -111,8 +112,12 @@ router.get('/comprehensive', authenticateToken, async (req, res) => {
 
     // Get branch info if applicable
     let branchInfo = null;
-    if (req.user.role === 'superAdmin' && req.query.branchId) {
-      branchInfo = await Branch.findById(req.query.branchId);
+    if (req.user.role === 'superAdmin' && req.query.branchId && req.query.branchId !== 'all') {
+      try {
+        branchInfo = await Branch.findById(req.query.branchId);
+      } catch (error) {
+        console.error('Error finding branch:', error);
+      }
     } else if (req.user.role !== 'superAdmin') {
       branchInfo = req.user.branch;
     }

@@ -16,14 +16,25 @@ router.get('/stats', authenticateToken, async (req, res) => {
     if (req.user.role === 'superAdmin') {
       // SuperAdmin can see all stats or specific branch stats
       const { branchId } = req.query;
-      if (branchId) {
-        branchFilter = { branch: branchId };
-        branchInfo = await Branch.findById(branchId);
+      if (branchId && branchId !== 'all') {
+        try {
+          branchFilter = { branch: branchId };
+          branchInfo = await Branch.findById(branchId);
+          if (!branchInfo) {
+            return res.status(404).json({ message: 'Branch not found' });
+          }
+        } catch (error) {
+          return res.status(400).json({ message: 'Invalid branch ID' });
+        }
       }
     } else {
       // Other users can only see their branch stats
-      branchFilter = { branch: req.user.branch._id.toString() }; // Convert to string for consistency
-      branchInfo = req.user.branch;
+      if (req.user.branch && req.user.branch._id) {
+        branchFilter = { branch: req.user.branch._id };
+        branchInfo = req.user.branch;
+      } else {
+        return res.status(400).json({ message: 'User branch information not found' });
+      }
     }
 
     // Get user statistics
@@ -58,12 +69,11 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     // Get course statistics
     let courseStats = null;
+    const Course = require('../models/Course');
     if (req.user.role === 'superAdmin') {
-      const Course = require('../models/Course');
       courseStats = await Course.getStatistics(req.query.branchId, req.user.role);
     } else {
-      const Course = require('../models/Course');
-      const userBranchId = req.user.branch._id.toString();
+      const userBranchId = req.user.branch._id;
       courseStats = await Course.getStatistics(userBranchId, req.user.role);
     }
 

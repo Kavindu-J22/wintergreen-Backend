@@ -149,11 +149,25 @@ transactionSchema.pre('save', async function(next) {
 transactionSchema.statics.getStatistics = async function(branchId, userRole, filters = {}) {
   const matchQuery = { isActive: true };
 
-  // Apply branch filter for non-superAdmin users
-  if (userRole !== 'superAdmin' && branchId) {
-    matchQuery.branch = new mongoose.Types.ObjectId(branchId);
-  } else if (branchId) {
-    matchQuery.branch = new mongoose.Types.ObjectId(branchId);
+  // Apply branch filter
+  if (branchId) {
+    try {
+      // Convert to ObjectId if it's a string
+      const branchObjectId = typeof branchId === 'string' ? mongoose.Types.ObjectId.createFromHexString(branchId) : branchId;
+      matchQuery.branch = branchObjectId;
+    } catch (error) {
+      console.error('Invalid branch ID in Transaction.getStatistics:', error);
+      // Return empty stats if invalid branch ID
+      return {
+        totalTransactions: 0,
+        totalRevenue: 0,
+        totalExpenses: 0,
+        netIncome: 0,
+        averageTransactionAmount: 0,
+        revenueByType: {},
+        expensesByType: {}
+      };
+    }
   }
 
   // Apply date filters if provided
