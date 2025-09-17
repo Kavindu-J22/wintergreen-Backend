@@ -66,9 +66,11 @@ router.get('/', authenticateToken, async (req, res) => {
         // Handle 'all' branch case
         courseObj.branch = { _id: 'all', name: 'All Branches' };
       } else {
-        // Populate specific branch
-        await course.populate('branch', 'name');
-        courseObj.branch = course.branch;
+        // Manually fetch branch data since Mixed type doesn't support populate
+        const branchData = await Branch.findById(courseObj.branch).select('name');
+        if (branchData) {
+          courseObj.branch = { _id: branchData._id, name: branchData.name };
+        }
       }
 
       return courseObj;
@@ -135,9 +137,11 @@ router.get('/:id', authenticateToken, [
     if (courseObj.branch === 'all') {
       courseObj.branch = { _id: 'all', name: 'All Branches' };
     } else {
-      // Populate specific branch
-      await course.populate('branch', 'name');
-      courseObj.branch = course.branch;
+      // Manually fetch branch data since Mixed type doesn't support populate
+      const branchData = await Branch.findById(courseObj.branch).select('name');
+      if (branchData) {
+        courseObj.branch = { _id: branchData._id, name: branchData.name };
+      }
     }
 
     // Check access permissions for non-superAdmin users
@@ -218,15 +222,18 @@ router.post('/', authenticateToken, requireSuperAdmin, [
     await course.save();
 
     // Populate the response
-    if (branch !== 'all') {
-      await course.populate('branch', 'name');
-    }
     await course.populate('createdBy', 'fullName username');
 
     // Process course to handle 'all' branch display
-    const courseObj = course.toObject();
+    let courseObj = course.toObject();
     if (courseObj.branch === 'all') {
       courseObj.branch = { _id: 'all', name: 'All Branches' };
+    } else {
+      // Manually fetch branch data since Mixed type doesn't support populate
+      const branchData = await Branch.findById(courseObj.branch).select('name');
+      if (branchData) {
+        courseObj.branch = { _id: branchData._id, name: branchData.name };
+      }
     }
 
     res.status(201).json({
@@ -315,15 +322,18 @@ router.put('/:id', authenticateToken, requireSuperAdmin, [
     await course.save();
 
     // Populate the response
-    if (course.branch !== 'all') {
-      await course.populate('branch', 'name');
-    }
     await course.populate('createdBy', 'fullName username');
 
     // Process course to handle 'all' branch display
-    const courseObj = course.toObject();
+    let courseObj = course.toObject();
     if (courseObj.branch === 'all') {
       courseObj.branch = { _id: 'all', name: 'All Branches' };
+    } else {
+      // Manually fetch branch data since Mixed type doesn't support populate
+      const branchData = await Branch.findById(courseObj.branch).select('name');
+      if (branchData) {
+        courseObj.branch = { _id: branchData._id, name: branchData.name };
+      }
     }
 
     res.json({
