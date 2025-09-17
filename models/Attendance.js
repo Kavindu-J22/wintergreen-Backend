@@ -182,12 +182,8 @@ attendanceSchema.statics.getFilteredAttendance = function(filters = {}, options 
     if (dateTo) matchQuery.date.$lte = new Date(dateTo);
   }
   
-  // Branch filtering based on user role
-  if (userRole === 'superAdmin') {
-    // SuperAdmin can see all branches or filter by specific branch
-    if (branchId) matchQuery.branch = branchId;
-  } else {
-    // Other users can only see their branch
+  // Branch filtering - use user's currently logged branch
+  if (userBranchId) {
     matchQuery.branch = userBranchId;
   }
   

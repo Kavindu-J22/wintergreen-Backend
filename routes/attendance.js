@@ -70,10 +70,8 @@ router.get('/', authenticateToken, async (req, res) => {
       if (filters.dateTo) countQuery.date.$lte = new Date(filters.dateTo);
     }
 
-    // Apply branch filtering based on user role
-    if (req.user.role === 'superAdmin') {
-      if (filters.branchId) countQuery.branch = filters.branchId;
-    } else {
+    // Apply branch filtering - use user's currently logged branch
+    if (req.user.branch) {
       countQuery.branch = req.user.branch._id;
     }
 
@@ -110,11 +108,9 @@ router.get('/students/:courseId', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Check branch access for non-superAdmin users
-    if (req.user.role !== 'superAdmin') {
-      if (course.branch !== 'all' && course.branch.toString() !== req.user.branch._id.toString()) {
-        return res.status(403).json({ message: 'Access denied to this course' });
-      }
+    // Check if user has access to this course
+    if (req.user.branch && course.branch !== 'all' && course.branch.toString() !== req.user.branch._id.toString()) {
+      return res.status(403).json({ message: 'Access denied to this course' });
     }
 
     // Build student query
@@ -124,14 +120,8 @@ router.get('/students/:courseId', authenticateToken, async (req, res) => {
       status: 'Active'
     };
 
-    // Apply branch filtering
-    if (req.user.role === 'superAdmin') {
-      // For superAdmin, use branchId from query if provided and not 'all'
-      if (branchId && branchId !== 'all') {
-        studentQuery.branch = branchId;
-      }
-    } else {
-      // For non-superAdmin users, always use their branch
+    // Apply branch filtering - use user's currently logged branch
+    if (req.user.branch) {
       studentQuery.branch = req.user.branch._id;
     }
 
@@ -450,13 +440,12 @@ router.get('/stats/:courseId', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Check branch access for non-superAdmin users
-    let targetBranchId = branchId === 'all' ? null : branchId;
-    if (req.user.role !== 'superAdmin') {
-      targetBranchId = req.user.branch._id;
-      if (course.branch !== 'all' && course.branch.toString() !== targetBranchId.toString()) {
-        return res.status(403).json({ message: 'Access denied to this course' });
-      }
+    // Use the user's currently logged branch for all users (including superAdmin)
+    let targetBranchId = req.user.branch ? req.user.branch._id : null;
+
+    // Check if user has access to this course
+    if (targetBranchId && course.branch !== 'all' && course.branch.toString() !== targetBranchId.toString()) {
+      return res.status(403).json({ message: 'Access denied to this course' });
     }
 
     // Get attendance statistics

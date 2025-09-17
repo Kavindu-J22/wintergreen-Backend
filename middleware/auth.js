@@ -12,7 +12,7 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Get user from database to ensure they still exist and are active
     const user = await User.findById(decoded.userId)
       .populate('branch', 'name isActive')
@@ -22,7 +22,17 @@ const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid or expired token' });
     }
 
-    // Check if user's branch is still active (except for superAdmin)
+    // For superAdmin, use the branch from JWT token if available
+    if (user.role === 'superAdmin' && decoded.branchId) {
+      const Branch = require('../models/Branch');
+      const selectedBranch = await Branch.findById(decoded.branchId);
+      if (selectedBranch && selectedBranch.isActive) {
+        // Override the user's branch with the selected branch from token
+        user.branch = selectedBranch;
+      }
+    }
+
+    // Check if user's branch is still active (except for superAdmin without selected branch)
     if (user.role !== 'superAdmin' && (!user.branch || !user.branch.isActive)) {
       return res.status(401).json({ message: 'User branch is inactive' });
     }
