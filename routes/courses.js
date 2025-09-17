@@ -44,34 +44,35 @@ router.get('/', authenticateToken, async (req, res) => {
         searchQuery.branch = branchId;
       }
     } else {
-      // Other users can only see courses from their branch
-      searchQuery.branch = req.user.branch._id;
+      // Other users can see courses from their branch OR courses marked as "all"
+      searchQuery.$or = [
+        { branch: req.user.branch._id },
+        { branch: 'all' }
+      ];
     }
 
     // Get courses with pagination
-    let coursesQuery = Course.find(searchQuery);
-
-    // Handle population for courses with 'all' branch vs specific branch
-    coursesQuery = coursesQuery.populate({
-      path: 'branch',
-      select: 'name',
-      // Don't populate if branch is 'all'
-      match: { $ne: 'all' }
-    }).populate('createdBy', 'fullName username');
-
-    const courses = await coursesQuery
+    const courses = await Course.find(searchQuery)
+      .populate('createdBy', 'fullName username')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    // Process courses to handle 'all' branch display
-    const processedCourses = courses.map(course => {
+    // Process courses to handle branch population and 'all' branch display
+    const processedCourses = await Promise.all(courses.map(async (course) => {
       const courseObj = course.toObject();
+
       if (courseObj.branch === 'all') {
+        // Handle 'all' branch case
         courseObj.branch = { _id: 'all', name: 'All Branches' };
+      } else {
+        // Populate specific branch
+        await course.populate('branch', 'name');
+        courseObj.branch = course.branch;
       }
+
       return courseObj;
-    });
+    }));
 
     // Get total count for pagination
     const total = await Course.countDocuments(searchQuery);
@@ -123,21 +124,20 @@ router.get('/:id', authenticateToken, [
 ], async (req, res) => {
   try {
     let course = await Course.findById(req.params.id)
-      .populate({
-        path: 'branch',
-        select: 'name',
-        match: { $ne: 'all' }
-      })
       .populate('createdBy', 'fullName username');
 
     if (!course || !course.isActive) {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Process course to handle 'all' branch display
-    const courseObj = course.toObject();
+    // Handle branch population and 'all' branch display
+    let courseObj = course.toObject();
     if (courseObj.branch === 'all') {
       courseObj.branch = { _id: 'all', name: 'All Branches' };
+    } else {
+      // Populate specific branch
+      await course.populate('branch', 'name');
+      courseObj.branch = course.branch;
     }
 
     // Check access permissions for non-superAdmin users
