@@ -40,9 +40,14 @@ router.get('/', authenticateToken, async (req, res) => {
     // Branch filter based on user role
     if (req.user.role === 'superAdmin') {
       // SuperAdmin can see all courses or filter by specific branch
-      if (branchId) {
-        searchQuery.branch = branchId;
+      if (branchId && branchId !== 'all') {
+        // When SuperAdmin selects a specific branch, show courses for that branch OR courses marked as "all"
+        searchQuery.$or = [
+          { branch: branchId },
+          { branch: 'all' }
+        ];
       }
+      // If branchId is 'all' or not provided, show all courses (no additional filter)
     } else {
       // Other users can see courses from their branch OR courses marked as "all"
       // Convert ObjectId to string for comparison since course.branch is stored as string

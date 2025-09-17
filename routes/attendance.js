@@ -168,6 +168,11 @@ router.get('/students/:courseId', authenticateToken, async (req, res) => {
           status: attendance.status,
           timeIn: attendance.timeIn,
           notes: attendance.notes
+        } : null,
+        savedAttendance: attendance ? {
+          status: attendance.status,
+          timeIn: attendance.timeIn,
+          notes: attendance.notes
         } : null
       };
     });

@@ -114,7 +114,7 @@ attendanceSchema.statics.getAttendanceStats = async function(courseId, date, bra
     date: new Date(date),
     isActive: true
   };
-  
+
   if (branchId) {
     matchQuery.branch = branchId;
   }
