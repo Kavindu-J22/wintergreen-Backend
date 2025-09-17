@@ -220,8 +220,16 @@ const validationRules = {
     body('branch')
       .notEmpty()
       .withMessage('Branch is required')
-      .isMongoId()
-      .withMessage('Branch must be a valid ID')
+      .custom((value) => {
+        // Allow 'all' string or valid MongoDB ObjectId
+        if (value === 'all') {
+          return true;
+        }
+        if (typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value)) {
+          return true;
+        }
+        throw new Error('Branch must be a valid ID or "all"');
+      })
   ],
 
   courseUpdate: [
@@ -288,8 +296,16 @@ const validationRules = {
 
     body('branch')
       .optional({ checkFalsy: true })
-      .isMongoId()
-      .withMessage('Branch must be a valid ID')
+      .custom((value) => {
+        // Allow 'all' string or valid MongoDB ObjectId
+        if (value === 'all') {
+          return true;
+        }
+        if (typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value)) {
+          return true;
+        }
+        throw new Error('Branch must be a valid ID or "all"');
+      })
   ],
 
   // Parameter validation rules

@@ -49,18 +49,35 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 
     // Get courses with pagination
-    const courses = await Course.find(searchQuery)
-      .populate('branch', 'name')
-      .populate('createdBy', 'fullName username')
+    let coursesQuery = Course.find(searchQuery);
+
+    // Handle population for courses with 'all' branch vs specific branch
+    coursesQuery = coursesQuery.populate({
+      path: 'branch',
+      select: 'name',
+      // Don't populate if branch is 'all'
+      match: { $ne: 'all' }
+    }).populate('createdBy', 'fullName username');
+
+    const courses = await coursesQuery
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+
+    // Process courses to handle 'all' branch display
+    const processedCourses = courses.map(course => {
+      const courseObj = course.toObject();
+      if (courseObj.branch === 'all') {
+        courseObj.branch = { _id: 'all', name: 'All Branches' };
+      }
+      return courseObj;
+    });
 
     // Get total count for pagination
     const total = await Course.countDocuments(searchQuery);
 
     res.json({
-      courses,
+      courses: processedCourses,
       pagination: {
         current: parseInt(page),
         pages: Math.ceil(total / limit),
@@ -105,21 +122,34 @@ router.get('/:id', authenticateToken, [
   handleValidationErrors
 ], async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id)
-      .populate('branch', 'name')
+    let course = await Course.findById(req.params.id)
+      .populate({
+        path: 'branch',
+        select: 'name',
+        match: { $ne: 'all' }
+      })
       .populate('createdBy', 'fullName username');
 
     if (!course || !course.isActive) {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Check access permissions for non-superAdmin users
-    if (req.user.role !== 'superAdmin' && 
-        course.branch._id.toString() !== req.user.branch._id.toString()) {
-      return res.status(403).json({ message: 'Access denied to this course' });
+    // Process course to handle 'all' branch display
+    const courseObj = course.toObject();
+    if (courseObj.branch === 'all') {
+      courseObj.branch = { _id: 'all', name: 'All Branches' };
     }
 
-    res.json(course);
+    // Check access permissions for non-superAdmin users
+    if (req.user.role !== 'superAdmin') {
+      // If course is for all branches, allow access
+      if (course.branch !== 'all' &&
+          course.branch && course.branch._id.toString() !== req.user.branch._id.toString()) {
+        return res.status(403).json({ message: 'Access denied to this course' });
+      }
+    }
+
+    res.json(courseObj);
   } catch (error) {
     console.error('Get course error:', error);
     res.status(500).json({ message: 'Server error fetching course' });
@@ -148,21 +178,24 @@ router.post('/', authenticateToken, requireSuperAdmin, [
       branch 
     } = req.body;
 
-    // Verify branch exists
-    const branchExists = await Branch.findById(branch);
-    if (!branchExists || !branchExists.isActive) {
-      return res.status(400).json({ message: 'Invalid or inactive branch' });
+    // Verify branch exists (unless it's 'all')
+    if (branch !== 'all') {
+      const branchExists = await Branch.findById(branch);
+      if (!branchExists || !branchExists.isActive) {
+        return res.status(400).json({ message: 'Invalid or inactive branch' });
+      }
     }
 
     // Check if course title already exists in the same branch
-    const existingCourse = await Course.findOne({ 
+    const existingCourse = await Course.findOne({
       title: { $regex: new RegExp(`^${title}$`, 'i') },
       branch: branch,
       isActive: true
     });
 
     if (existingCourse) {
-      return res.status(400).json({ message: 'Course title already exists in this branch' });
+      const branchName = branch === 'all' ? 'all branches' : 'this branch';
+      return res.status(400).json({ message: `Course title already exists in ${branchName}` });
     }
 
     // Create new course
@@ -185,12 +218,20 @@ router.post('/', authenticateToken, requireSuperAdmin, [
     await course.save();
 
     // Populate the response
-    await course.populate('branch', 'name');
+    if (branch !== 'all') {
+      await course.populate('branch', 'name');
+    }
     await course.populate('createdBy', 'fullName username');
+
+    // Process course to handle 'all' branch display
+    const courseObj = course.toObject();
+    if (courseObj.branch === 'all') {
+      courseObj.branch = { _id: 'all', name: 'All Branches' };
+    }
 
     res.status(201).json({
       message: 'Course created successfully',
-      course
+      course: courseObj
     });
   } catch (error) {
     console.error('Create course error:', error);
@@ -233,11 +274,13 @@ router.put('/:id', authenticateToken, requireSuperAdmin, [
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // If branch is being changed, verify it exists
+    // If branch is being changed, verify it exists (unless it's 'all')
     if (branch && branch !== course.branch.toString()) {
-      const branchExists = await Branch.findById(branch);
-      if (!branchExists || !branchExists.isActive) {
-        return res.status(400).json({ message: 'Invalid or inactive branch' });
+      if (branch !== 'all') {
+        const branchExists = await Branch.findById(branch);
+        if (!branchExists || !branchExists.isActive) {
+          return res.status(400).json({ message: 'Invalid or inactive branch' });
+        }
       }
     }
 
@@ -251,7 +294,8 @@ router.put('/:id', authenticateToken, requireSuperAdmin, [
       });
 
       if (existingCourse) {
-        return res.status(400).json({ message: 'Course title already exists in this branch' });
+        const branchName = (branch || course.branch) === 'all' ? 'all branches' : 'this branch';
+        return res.status(400).json({ message: `Course title already exists in ${branchName}` });
       }
     }
 
@@ -271,12 +315,20 @@ router.put('/:id', authenticateToken, requireSuperAdmin, [
     await course.save();
 
     // Populate the response
-    await course.populate('branch', 'name');
+    if (course.branch !== 'all') {
+      await course.populate('branch', 'name');
+    }
     await course.populate('createdBy', 'fullName username');
+
+    // Process course to handle 'all' branch display
+    const courseObj = course.toObject();
+    if (courseObj.branch === 'all') {
+      courseObj.branch = { _id: 'all', name: 'All Branches' };
+    }
 
     res.json({
       message: 'Course updated successfully',
-      course
+      course: courseObj
     });
   } catch (error) {
     console.error('Update course error:', error);

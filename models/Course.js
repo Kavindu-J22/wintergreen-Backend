@@ -75,9 +75,15 @@ const courseSchema = new mongoose.Schema({
     maxlength: [200, 'Module name cannot exceed 200 characters']
   }],
   branch: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Branch',
-    required: [true, 'Branch is required']
+    type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and string
+    required: [true, 'Branch is required'],
+    validate: {
+      validator: function(value) {
+        // Allow 'all' string or valid ObjectId
+        return value === 'all' || mongoose.Types.ObjectId.isValid(value);
+      },
+      message: 'Branch must be a valid ID or "all"'
+    }
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
