@@ -102,7 +102,7 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/students/:courseId', authenticateToken, async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { date } = req.query;
+    const { date, branchId } = req.query;
 
     // Verify course exists and user has access
     const course = await Course.findById(courseId);
@@ -118,14 +118,20 @@ router.get('/students/:courseId', authenticateToken, async (req, res) => {
     }
 
     // Build student query
-    let studentQuery = { 
-      course: courseId, 
-      isActive: true, 
-      status: 'Active' 
+    let studentQuery = {
+      course: courseId,
+      isActive: true,
+      status: 'Active'
     };
 
-    // Apply branch filtering for non-superAdmin users
-    if (req.user.role !== 'superAdmin') {
+    // Apply branch filtering
+    if (req.user.role === 'superAdmin') {
+      // For superAdmin, use branchId from query if provided and not 'all'
+      if (branchId && branchId !== 'all') {
+        studentQuery.branch = branchId;
+      }
+    } else {
+      // For non-superAdmin users, always use their branch
       studentQuery.branch = req.user.branch._id;
     }
 
