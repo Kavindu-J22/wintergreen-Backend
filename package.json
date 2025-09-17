@@ -9,13 +9,19 @@
     "seed": "node seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["academy", "management", "education", "api"],
+  "keywords": [
+    "academy",
+    "management",
+    "education",
+    "api"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
     "express-validator": "^7.2.1",

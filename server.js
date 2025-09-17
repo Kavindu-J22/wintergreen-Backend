@@ -51,6 +51,7 @@ app.use('/api/branches', require('./routes/branches'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/courses', require('./routes/courses'));
 app.use('/api/students', require('./routes/students'));
+app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Health check endpoint
