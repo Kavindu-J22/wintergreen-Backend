@@ -102,16 +102,16 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/statistics', authenticateToken, async (req, res) => {
   try {
     let branchId = null;
-    
+
     // Non-superAdmin users can only see their branch statistics
     if (req.user.role !== 'superAdmin') {
-      branchId = req.user.branch._id;
+      branchId = req.user.branch._id.toString(); // Convert to string for consistency
     } else if (req.query.branchId) {
       branchId = req.query.branchId;
     }
 
-    const statistics = await Course.getStatistics(branchId);
-    
+    const statistics = await Course.getStatistics(branchId, req.user.role);
+
     res.json(statistics);
   } catch (error) {
     console.error('Get course statistics error:', error);

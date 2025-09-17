@@ -154,10 +154,20 @@ courseSchema.statics.findByBranch = function(branchId) {
 };
 
 // Static method to get course statistics
-courseSchema.statics.getStatistics = async function(branchId = null) {
-  const matchQuery = { isActive: true };
+courseSchema.statics.getStatistics = async function(branchId = null, userRole = null) {
+  let matchQuery = { isActive: true };
+
   if (branchId) {
-    matchQuery.branch = new mongoose.Types.ObjectId(branchId);
+    if (userRole === 'superAdmin') {
+      // SuperAdmin can see specific branch stats
+      matchQuery.branch = branchId;
+    } else {
+      // Branch users see their branch courses + "All Branches" courses
+      matchQuery.$or = [
+        { branch: branchId },
+        { branch: 'all' }
+      ];
+    }
   }
 
   const stats = await this.aggregate([

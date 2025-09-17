@@ -22,7 +22,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
       }
     } else {
       // Other users can only see their branch stats
-      branchFilter = { branch: req.user.branch._id };
+      branchFilter = { branch: req.user.branch._id.toString() }; // Convert to string for consistency
       branchInfo = req.user.branch;
     }
 
@@ -55,6 +55,17 @@ router.get('/stats', authenticateToken, async (req, res) => {
       pendingPayments: 125000,
       growthRate: 12.5
     };
+
+    // Get course statistics
+    let courseStats = null;
+    if (req.user.role === 'superAdmin') {
+      const Course = require('../models/Course');
+      courseStats = await Course.getStatistics(req.query.branchId, req.user.role);
+    } else {
+      const Course = require('../models/Course');
+      const userBranchId = req.user.branch._id.toString();
+      courseStats = await Course.getStatistics(userBranchId, req.user.role);
+    }
 
     // Mock attendance data (replace with actual attendance model when available)
     const mockAttendanceData = {
@@ -90,6 +101,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
           return acc;
         }, {})
       },
+      courseStats,
       financialStats: mockFinancialData,
       attendanceStats: mockAttendanceData,
       branchStats,
@@ -182,7 +194,7 @@ router.get('/charts/enrollment', authenticateToken, async (req, res) => {
 
     // Determine branch filter based on user role
     if (req.user.role !== 'superAdmin') {
-      branchFilter = { branch: req.user.branch._id };
+      branchFilter = { branch: req.user.branch._id.toString() }; // Convert to string for consistency
     } else {
       const { branchId } = req.query;
       if (branchId) {
@@ -240,7 +252,7 @@ router.get('/charts/users-by-role', authenticateToken, async (req, res) => {
 
     // Determine branch filter based on user role
     if (req.user.role !== 'superAdmin') {
-      branchFilter = { branch: req.user.branch._id };
+      branchFilter = { branch: req.user.branch._id.toString() }; // Convert to string for consistency
     } else {
       const { branchId } = req.query;
       if (branchId) {
