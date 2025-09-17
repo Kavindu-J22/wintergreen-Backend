@@ -45,8 +45,10 @@ router.get('/', authenticateToken, async (req, res) => {
       }
     } else {
       // Other users can see courses from their branch OR courses marked as "all"
+      // Convert ObjectId to string for comparison since course.branch is stored as string
+      const userBranchId = req.user.branch._id.toString();
       searchQuery.$or = [
-        { branch: req.user.branch._id },
+        { branch: userBranchId },
         { branch: 'all' }
       ];
     }
