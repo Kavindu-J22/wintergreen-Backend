@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('./models/User');
 const Branch = require('./models/Branch');
+const Course = require('./models/Course');
 require('dotenv').config();
 
 const seedDatabase = async () => {
@@ -130,6 +131,79 @@ const seedDatabase = async () => {
           console.log(`User already exists: ${userData.username}`);
         }
       }
+    }
+
+    // Create sample courses
+    const existingCourses = await Course.find();
+
+    if (existingCourses.length === 0) {
+      const sampleCourses = [
+        {
+          title: 'Web Development Fundamentals',
+          description: 'Learn the basics of HTML, CSS, and JavaScript to build modern websites.',
+          duration: '3 months',
+          price: 25000,
+          currency: 'LKR',
+          maxStudents: 30,
+          schedule: 'Mon, Wed, Fri 6:00 PM - 8:00 PM',
+          instructor: 'John Smith',
+          nextStart: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+          status: 'Active',
+          modules: ['HTML Basics', 'CSS Styling', 'JavaScript Programming', 'Responsive Design'],
+          branch: 'all',
+          createdBy: superAdmin._id
+        },
+        {
+          title: 'Digital Marketing Mastery',
+          description: 'Master digital marketing strategies including SEO, social media, and content marketing.',
+          duration: '2 months',
+          price: 20000,
+          currency: 'LKR',
+          maxStudents: 25,
+          schedule: 'Tue, Thu 7:00 PM - 9:00 PM',
+          instructor: 'Sarah Johnson',
+          nextStart: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks from now
+          status: 'Active',
+          modules: ['SEO Fundamentals', 'Social Media Marketing', 'Content Strategy', 'Analytics'],
+          branch: createdBranches[0]._id, // Colombo
+          createdBy: superAdmin._id
+        },
+        {
+          title: 'Data Science with Python',
+          description: 'Learn data analysis, visualization, and machine learning using Python.',
+          duration: '4 months',
+          price: 35000,
+          currency: 'LKR',
+          maxStudents: 20,
+          schedule: 'Sat, Sun 9:00 AM - 12:00 PM',
+          instructor: 'Dr. Michael Chen',
+          nextStart: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // 3 weeks from now
+          status: 'Active',
+          modules: ['Python Basics', 'Data Analysis with Pandas', 'Data Visualization', 'Machine Learning'],
+          branch: createdBranches[1]._id, // Kandy
+          createdBy: superAdmin._id
+        },
+        {
+          title: 'Graphic Design Essentials',
+          description: 'Master the fundamentals of graphic design using Adobe Creative Suite.',
+          duration: '2.5 months',
+          price: 22000,
+          currency: 'LKR',
+          maxStudents: 15,
+          schedule: 'Mon, Wed 5:00 PM - 7:00 PM',
+          instructor: 'Emma Wilson',
+          nextStart: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+          status: 'Active',
+          modules: ['Design Principles', 'Adobe Photoshop', 'Adobe Illustrator', 'Brand Identity'],
+          branch: createdBranches[2]._id, // Galle
+          createdBy: superAdmin._id
+        }
+      ];
+
+      const createdCourses = await Course.insertMany(sampleCourses);
+      console.log('Sample courses created:', createdCourses.map(c => c.title).join(', '));
+    } else {
+      console.log('Courses already exist:', existingCourses.map(c => c.title).join(', '));
     }
 
     console.log('\n=== SEED DATA CREATED ===');

@@ -64,12 +64,26 @@ router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {
 // @access  Private
 router.get('/active', authenticateToken, async (req, res) => {
   try {
-    const branches = await Branch.findActive();
-    
-    res.json(branches.map(branch => ({
-      id: branch._id,
-      name: branch.name
-    })));
+    const user = req.user;
+
+    if (user.role === 'superAdmin') {
+      // SuperAdmin can see all active branches
+      const branches = await Branch.findActive();
+      return res.json(branches.map(branch => ({
+        id: branch._id,
+        name: branch.name
+      })));
+    } else {
+      // Other users can only see their assigned branch
+      if (user.branch) {
+        return res.json([{
+          id: user.branch._id,
+          name: user.branch.name
+        }]);
+      } else {
+        return res.json([]);
+      }
+    }
   } catch (error) {
     console.error('Get active branches error:', error);
     res.status(500).json({ message: 'Server error fetching active branches' });
