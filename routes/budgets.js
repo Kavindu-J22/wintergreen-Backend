@@ -171,18 +171,27 @@ router.post('/', authenticateToken, requireSuperAdmin, [
     // Determine target branch
     let targetBranchId = branch;
     if (req.user.role !== 'superAdmin') {
+      // For non-superAdmin users, always use their branch
       targetBranchId = req.user.branch._id.toString();
       if (branch && branch !== targetBranchId) {
         return res.status(403).json({ message: 'Cannot create budget for other branches' });
       }
+    } else {
+      // For superAdmin, if no branch is provided, use their current branch (if any)
+      if (!targetBranchId && req.user.branch) {
+        targetBranchId = req.user.branch._id.toString();
+      }
+    }
+
+    // Ensure branch is specified
+    if (!targetBranchId) {
+      return res.status(400).json({ message: 'Branch is required for budget' });
     }
 
     // Verify branch exists
-    if (targetBranchId) {
-      const branchExists = await Branch.findById(targetBranchId);
-      if (!branchExists || !branchExists.isActive) {
-        return res.status(400).json({ message: 'Invalid or inactive branch' });
-      }
+    const branchExists = await Branch.findById(targetBranchId);
+    if (!branchExists || !branchExists.isActive) {
+      return res.status(400).json({ message: 'Invalid or inactive branch' });
     }
 
     // Validate date range

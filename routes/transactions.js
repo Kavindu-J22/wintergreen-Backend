@@ -2,15 +2,59 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const Transaction = require('../models/Transaction');
+const Budget = require('../models/Budget');
 const Student = require('../models/Student');
 const Course = require('../models/Course');
 const Branch = require('../models/Branch');
 const { validationRules, handleValidationErrors } = require('../utils/validation');
-const { 
-  authenticateToken, 
+const {
+  authenticateToken,
   requireRole,
-  validateBranchOwnership 
+  validateBranchOwnership
 } = require('../middleware/auth');
+
+// Helper function to update related budgets when transactions change
+const updateRelatedBudgets = async (transaction, oldTransaction = null) => {
+  try {
+    const categoriesToUpdate = new Set();
+
+    // Add current transaction category
+    if (transaction && transaction.category) {
+      categoriesToUpdate.add(transaction.category);
+    }
+
+    // Add old transaction category if it changed
+    if (oldTransaction && oldTransaction.category && oldTransaction.category !== transaction?.category) {
+      categoriesToUpdate.add(oldTransaction.category);
+    }
+
+    // Update budgets for each affected category
+    for (const category of categoriesToUpdate) {
+      const transactionDate = transaction?.date || oldTransaction?.date || new Date();
+      const branchId = transaction?.branch || oldTransaction?.branch;
+
+      if (!branchId) continue; // Skip if no branch information
+
+      const budgets = await Budget.find({
+        category: category,
+        branch: branchId,
+        isActive: true,
+        // Only update budgets that cover the transaction date
+        startDate: { $lte: transactionDate },
+        endDate: { $gte: transactionDate }
+      });
+
+      // Update spent amount for each matching budget
+      for (const budget of budgets) {
+        await budget.updateSpentAmount();
+        console.log(`Updated budget ${budget._id} for category ${category}, new spent amount: ${budget.spent}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error updating related budgets:', error);
+    // Don't throw error to avoid breaking transaction operations
+  }
+};
 
 // @route   GET /api/transactions
 // @desc    Get all transactions with filtering and pagination
@@ -179,19 +223,37 @@ router.post('/', authenticateToken, requireRole('superAdmin', 'admin'), [
 
     // Determine target branch
     let targetBranchId = branch;
+
     if (req.user.role !== 'superAdmin') {
-      targetBranchId = req.user.branch._id.toString();
+      // For non-superAdmin users, always use their branch
+      if (req.user.branch && req.user.branch._id) {
+        targetBranchId = req.user.branch._id.toString();
+      } else if (req.user.branch) {
+        targetBranchId = req.user.branch.toString();
+      }
       if (branch && branch !== targetBranchId) {
         return res.status(403).json({ message: 'Cannot create transaction for other branches' });
       }
+    } else {
+      // For superAdmin, if no branch is provided, use their current branch (if any)
+      if (!targetBranchId && req.user.branch) {
+        if (req.user.branch._id) {
+          targetBranchId = req.user.branch._id.toString();
+        } else {
+          targetBranchId = req.user.branch.toString();
+        }
+      }
+    }
+
+    // Ensure branch is specified
+    if (!targetBranchId) {
+      return res.status(400).json({ message: 'Branch is required for transaction' });
     }
 
     // Verify branch exists
-    if (targetBranchId) {
-      const branchExists = await Branch.findById(targetBranchId);
-      if (!branchExists || !branchExists.isActive) {
-        return res.status(400).json({ message: 'Invalid or inactive branch' });
-      }
+    const branchExists = await Branch.findById(targetBranchId);
+    if (!branchExists || !branchExists.isActive) {
+      return res.status(400).json({ message: 'Invalid or inactive branch' });
     }
 
     // Verify student exists and belongs to the branch (if provided)
@@ -234,6 +296,11 @@ router.post('/', authenticateToken, requireRole('superAdmin', 'admin'), [
     });
 
     await transaction.save();
+
+    // Update related budgets if this is an expense transaction
+    if (transaction.type === 'expense') {
+      await updateRelatedBudgets(transaction);
+    }
 
     // Populate the response
     await transaction.populate([
@@ -279,6 +346,16 @@ router.put('/:id', authenticateToken, requireRole('superAdmin', 'admin'), [
     if (!transaction) {
       return res.status(404).json({ message: 'Transaction not found' });
     }
+
+    // Store old transaction data for budget updates
+    const oldTransaction = {
+      type: transaction.type,
+      category: transaction.category,
+      amount: transaction.amount,
+      date: transaction.date,
+      status: transaction.status,
+      branch: transaction.branch
+    };
 
     const {
       type,
@@ -331,6 +408,11 @@ router.put('/:id', authenticateToken, requireRole('superAdmin', 'admin'), [
 
     await transaction.save();
 
+    // Update related budgets if this is an expense transaction or if expense-related fields changed
+    if (transaction.type === 'expense' || oldTransaction.type === 'expense') {
+      await updateRelatedBudgets(transaction, oldTransaction);
+    }
+
     // Populate the response
     await transaction.populate([
       { path: 'student', select: 'fullName studentId' },
@@ -376,10 +458,25 @@ router.delete('/:id', authenticateToken, requireRole('superAdmin', 'admin'), [
       return res.status(404).json({ message: 'Transaction not found' });
     }
 
+    // Store transaction data for budget updates before deletion
+    const deletedTransaction = {
+      type: transaction.type,
+      category: transaction.category,
+      amount: transaction.amount,
+      date: transaction.date,
+      status: transaction.status,
+      branch: transaction.branch
+    };
+
     // Soft delete
     transaction.isActive = false;
     transaction.updatedBy = req.user._id;
     await transaction.save();
+
+    // Update related budgets if this was an expense transaction
+    if (deletedTransaction.type === 'expense') {
+      await updateRelatedBudgets(null, deletedTransaction);
+    }
 
     res.json({ message: 'Transaction deleted successfully' });
   } catch (error) {
