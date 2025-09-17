@@ -440,7 +440,7 @@ router.get('/stats/:courseId', authenticateToken, async (req, res) => {
     }
 
     // Check branch access for non-superAdmin users
-    let targetBranchId = branchId;
+    let targetBranchId = branchId === 'all' ? null : branchId;
     if (req.user.role !== 'superAdmin') {
       targetBranchId = req.user.branch._id;
       if (course.branch !== 'all' && course.branch.toString() !== targetBranchId.toString()) {

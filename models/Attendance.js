@@ -21,12 +21,13 @@ const attendanceSchema = new mongoose.Schema({
     required: [true, 'Date is required'],
     validate: {
       validator: function(value) {
-        // Ensure date is not in the future
-        const today = new Date();
-        today.setHours(23, 59, 59, 999); // End of today
-        return value <= today;
+        // Ensure date is not more than 1 day in the future (to account for timezone differences)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(23, 59, 59, 999); // End of tomorrow
+        return value <= tomorrow;
       },
-      message: 'Attendance date cannot be in the future'
+      message: 'Attendance date cannot be more than 1 day in the future'
     }
   },
   status: {
