@@ -65,14 +65,34 @@ router.get('/stats', authenticateToken, async (req, res) => {
       createdAt: { $gte: thirtyDaysAgo }
     });
 
-    // Mock financial data (replace with actual financial model when available)
-    const mockFinancialData = {
-      monthlyRevenue: 750000,
-      monthlyExpenses: 480000,
-      netProfit: 270000,
-      pendingPayments: 125000,
-      growthRate: 12.5
+    // Get actual financial data from transactions
+    const Transaction = require('../models/Transaction');
+    let financialStats = null;
+    if (req.user.role === 'superAdmin') {
+      financialStats = await Transaction.getStatistics(req.query.branchId, req.user.role);
+    } else {
+      const userBranchId = req.user.branch._id;
+      financialStats = await Transaction.getStatistics(userBranchId, req.user.role);
+    }
+
+    // Transform transaction stats to match expected format
+    const actualFinancialData = {
+      monthlyRevenue: financialStats.totalIncome || 0,
+      monthlyExpenses: financialStats.totalExpenses || 0,
+      netProfit: financialStats.netProfit || 0,
+      pendingPayments: financialStats.pendingIncome || 0,
+      growthRate: 0 // Calculate growth rate if needed
     };
+
+    // Get student statistics
+    const Student = require('../models/Student');
+    let studentStats = null;
+    if (req.user.role === 'superAdmin') {
+      studentStats = await Student.getStatistics(req.query.branchId, req.user.role);
+    } else {
+      const userBranchId = req.user.branch._id;
+      studentStats = await Student.getStatistics(userBranchId, req.user.role);
+    }
 
     // Get course statistics
     let courseStats = null;
@@ -118,9 +138,13 @@ router.get('/stats', authenticateToken, async (req, res) => {
           return acc;
         }, {})
       },
+      studentStats,
       courseStats,
-      financialStats: mockFinancialData,
-      attendanceStats: mockAttendanceData,
+      financialStats: actualFinancialData,
+      attendanceStats: {
+        ...mockAttendanceData,
+        totalStudents: studentStats ? studentStats.totalStudents : 0
+      },
       branchStats,
       lastUpdated: new Date().toISOString()
     });
@@ -223,19 +247,21 @@ router.get('/charts/enrollment', authenticateToken, async (req, res) => {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const enrollmentData = await User.aggregate([
+    // Use Student model instead of User model for enrollment data
+    const Student = require('../models/Student');
+    const enrollmentData = await Student.aggregate([
       {
         $match: {
           ...branchFilter,
           isActive: true,
-          createdAt: { $gte: sixMonthsAgo }
+          enrollmentDate: { $gte: sixMonthsAgo }
         }
       },
       {
         $group: {
           _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' }
+            year: { $year: '$enrollmentDate' },
+            month: { $month: '$enrollmentDate' }
           },
           count: { $sum: 1 }
         }
@@ -250,7 +276,7 @@ router.get('/charts/enrollment', authenticateToken, async (req, res) => {
     const chartData = enrollmentData.map(item => ({
       month: months[item._id.month - 1],
       year: item._id.year,
-      newUsers: item.count
+      newStudents: item.count
     }));
 
     res.json(chartData);
