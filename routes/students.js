@@ -136,20 +136,25 @@ router.post('/', authenticateToken, requireRole('superAdmin', 'admin', 'moderato
   handleValidationErrors
 ], async (req, res) => {
   try {
-    const { 
-      fullName, 
-      email, 
-      phone, 
-      address, 
-      dateOfBirth, 
-      course: courseId, 
-      modules, 
-      branch: branchId, 
-      status, 
-      enrollmentDate, 
-      gpa, 
-      level, 
-      certifications 
+    const {
+      fullName,
+      email,
+      phone,
+      address,
+      dateOfBirth,
+      course: courseId,
+      modules,
+      branch: branchId,
+      status,
+      enrollmentDate,
+      level,
+      certifications,
+      childBabyCare,
+      elderCare,
+      documents,
+      personalDocuments,
+      hostelRequirement,
+      mealRequirement
     } = req.body;
 
     // Validate branch access for non-superAdmin users
@@ -208,9 +213,22 @@ router.post('/', authenticateToken, requireRole('superAdmin', 'admin', 'moderato
       branch: targetBranchId,
       status: status || 'Active',
       enrollmentDate: enrollmentDate ? new Date(enrollmentDate) : new Date(),
-      gpa: parseFloat(gpa) || 0,
       level: level || 'Beginner',
       certifications: certifications || [],
+      childBabyCare: childBabyCare || false,
+      elderCare: elderCare || false,
+      documents: documents || [],
+      personalDocuments: personalDocuments || {
+        birthCertificate: false,
+        gramaNiladhariCertificate: false,
+        guardianSpouseLetter: false,
+        originalCertificate: {
+          hasDocument: false,
+          title: ''
+        }
+      },
+      hostelRequirement: hostelRequirement || false,
+      mealRequirement: mealRequirement || false,
       createdBy: req.user._id
     });
 
@@ -263,9 +281,14 @@ router.put('/:id', authenticateToken, requireRole('superAdmin', 'admin', 'modera
       modules,
       status,
       enrollmentDate,
-      gpa,
       level,
-      certifications
+      certifications,
+      childBabyCare,
+      elderCare,
+      documents,
+      personalDocuments,
+      hostelRequirement,
+      mealRequirement
     } = req.body;
 
     const student = await Student.findById(req.params.id)
@@ -328,9 +351,14 @@ router.put('/:id', authenticateToken, requireRole('superAdmin', 'admin', 'modera
     if (modules !== undefined) student.modules = modules;
     if (status) student.status = status;
     if (enrollmentDate) student.enrollmentDate = new Date(enrollmentDate);
-    if (gpa !== undefined) student.gpa = parseFloat(gpa);
     if (level) student.level = level;
     if (certifications !== undefined) student.certifications = certifications;
+    if (childBabyCare !== undefined) student.childBabyCare = childBabyCare;
+    if (elderCare !== undefined) student.elderCare = elderCare;
+    if (documents !== undefined) student.documents = documents;
+    if (personalDocuments !== undefined) student.personalDocuments = personalDocuments;
+    if (hostelRequirement !== undefined) student.hostelRequirement = hostelRequirement;
+    if (mealRequirement !== undefined) student.mealRequirement = mealRequirement;
 
     // Handle course change
     if (courseChanged) {

@@ -73,11 +73,71 @@ const studentSchema = new mongoose.Schema({
     required: [true, 'Enrollment date is required'],
     default: Date.now
   },
-  gpa: {
-    type: Number,
-    min: [0, 'GPA cannot be negative'],
-    max: [4, 'GPA cannot exceed 4.0'],
-    default: 0
+  // Care services
+  childBabyCare: {
+    type: Boolean,
+    default: false
+  },
+  elderCare: {
+    type: Boolean,
+    default: false
+  },
+  // Document uploads
+  documents: [{
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    url: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    type: {
+      type: String,
+      enum: ['image', 'pdf', 'document'],
+      required: true
+    },
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  // Personal documents checklist
+  personalDocuments: {
+    birthCertificate: {
+      type: Boolean,
+      default: false
+    },
+    gramaNiladhariCertificate: {
+      type: Boolean,
+      default: false
+    },
+    guardianSpouseLetter: {
+      type: Boolean,
+      default: false
+    },
+    originalCertificate: {
+      hasDocument: {
+        type: Boolean,
+        default: false
+      },
+      title: {
+        type: String,
+        trim: true,
+        maxlength: [200, 'Certificate title cannot exceed 200 characters']
+      }
+    }
+  },
+  // Additional requirements
+  hostelRequirement: {
+    type: Boolean,
+    default: false
+  },
+  mealRequirement: {
+    type: Boolean,
+    default: false
   },
   level: {
     type: String,
@@ -199,8 +259,7 @@ studentSchema.statics.getStatistics = async function(branchId = null, userRole =
         return {
           totalStudents: 0,
           activeStudents: 0,
-          graduatedStudents: 0,
-          averageGPA: 0
+          graduatedStudents: 0
         };
       }
 
@@ -213,12 +272,11 @@ studentSchema.statics.getStatistics = async function(branchId = null, userRole =
       return {
         totalStudents: 0,
         activeStudents: 0,
-        graduatedStudents: 0,
-        averageGPA: 0
+        graduatedStudents: 0
       };
     }
   }
-  
+
   const stats = await this.aggregate([
     { $match: matchQuery },
     {
@@ -230,17 +288,15 @@ studentSchema.statics.getStatistics = async function(branchId = null, userRole =
         },
         graduatedStudents: {
           $sum: { $cond: [{ $eq: ['$status', 'Graduated'] }, 1, 0] }
-        },
-        averageGPA: { $avg: '$gpa' }
+        }
       }
     }
   ]);
-  
+
   return stats.length > 0 ? stats[0] : {
     totalStudents: 0,
     activeStudents: 0,
-    graduatedStudents: 0,
-    averageGPA: 0
+    graduatedStudents: 0
   };
 };
 

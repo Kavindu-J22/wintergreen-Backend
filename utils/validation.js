@@ -382,10 +382,72 @@ const validationRules = {
       .isISO8601()
       .withMessage('Enrollment date must be a valid date'),
 
-    body('gpa')
+    body('childBabyCare')
       .optional()
-      .isFloat({ min: 0, max: 4 })
-      .withMessage('GPA must be between 0 and 4.0'),
+      .isBoolean()
+      .withMessage('Child/Baby care must be a boolean value'),
+
+    body('elderCare')
+      .optional()
+      .isBoolean()
+      .withMessage('Elder care must be a boolean value'),
+
+    body('documents')
+      .optional()
+      .isArray()
+      .withMessage('Documents must be an array'),
+
+    body('documents.*.name')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 200 })
+      .withMessage('Document name must be between 1 and 200 characters'),
+
+    body('documents.*.url')
+      .optional()
+      .isURL()
+      .withMessage('Document URL must be a valid URL'),
+
+    body('documents.*.type')
+      .optional()
+      .isIn(['image', 'pdf', 'document'])
+      .withMessage('Document type must be one of: image, pdf, document'),
+
+    body('personalDocuments.birthCertificate')
+      .optional()
+      .isBoolean()
+      .withMessage('Birth certificate must be a boolean value'),
+
+    body('personalDocuments.gramaNiladhariCertificate')
+      .optional()
+      .isBoolean()
+      .withMessage('Grama Niladhari certificate must be a boolean value'),
+
+    body('personalDocuments.guardianSpouseLetter')
+      .optional()
+      .isBoolean()
+      .withMessage('Guardian/Spouse letter must be a boolean value'),
+
+    body('personalDocuments.originalCertificate.hasDocument')
+      .optional()
+      .isBoolean()
+      .withMessage('Original certificate status must be a boolean value'),
+
+    body('personalDocuments.originalCertificate.title')
+      .optional()
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Certificate title cannot exceed 200 characters'),
+
+    body('hostelRequirement')
+      .optional()
+      .isBoolean()
+      .withMessage('Hostel requirement must be a boolean value'),
+
+    body('mealRequirement')
+      .optional()
+      .isBoolean()
+      .withMessage('Meal requirement must be a boolean value'),
 
     body('level')
       .optional()
@@ -466,10 +528,72 @@ const validationRules = {
       .isISO8601()
       .withMessage('Enrollment date must be a valid date'),
 
-    body('gpa')
-      .optional({ checkFalsy: true })
-      .isFloat({ min: 0, max: 4 })
-      .withMessage('GPA must be between 0 and 4.0'),
+    body('childBabyCare')
+      .optional()
+      .isBoolean()
+      .withMessage('Child/Baby care must be a boolean value'),
+
+    body('elderCare')
+      .optional()
+      .isBoolean()
+      .withMessage('Elder care must be a boolean value'),
+
+    body('documents')
+      .optional()
+      .isArray()
+      .withMessage('Documents must be an array'),
+
+    body('documents.*.name')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 200 })
+      .withMessage('Document name must be between 1 and 200 characters'),
+
+    body('documents.*.url')
+      .optional()
+      .isURL()
+      .withMessage('Document URL must be a valid URL'),
+
+    body('documents.*.type')
+      .optional()
+      .isIn(['image', 'pdf', 'document'])
+      .withMessage('Document type must be one of: image, pdf, document'),
+
+    body('personalDocuments.birthCertificate')
+      .optional()
+      .isBoolean()
+      .withMessage('Birth certificate must be a boolean value'),
+
+    body('personalDocuments.gramaNiladhariCertificate')
+      .optional()
+      .isBoolean()
+      .withMessage('Grama Niladhari certificate must be a boolean value'),
+
+    body('personalDocuments.guardianSpouseLetter')
+      .optional()
+      .isBoolean()
+      .withMessage('Guardian/Spouse letter must be a boolean value'),
+
+    body('personalDocuments.originalCertificate.hasDocument')
+      .optional()
+      .isBoolean()
+      .withMessage('Original certificate status must be a boolean value'),
+
+    body('personalDocuments.originalCertificate.title')
+      .optional()
+      .trim()
+      .isLength({ max: 200 })
+      .withMessage('Certificate title cannot exceed 200 characters'),
+
+    body('hostelRequirement')
+      .optional()
+      .isBoolean()
+      .withMessage('Hostel requirement must be a boolean value'),
+
+    body('mealRequirement')
+      .optional()
+      .isBoolean()
+      .withMessage('Meal requirement must be a boolean value'),
 
     body('level')
       .optional({ checkFalsy: true })

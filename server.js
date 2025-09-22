@@ -112,6 +112,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/budgets', require('./routes/budgets'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
