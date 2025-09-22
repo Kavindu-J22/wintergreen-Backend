@@ -348,16 +348,48 @@ router.get('/export', authenticateToken, async (req, res) => {
         break;
 
       case 'students':
-        const studentData = await Student.getStatistics(branchId, req.user.role);
+        // Get detailed student data instead of just statistics
+        const students = await Student.find({
+          ...(branchId && branchId !== 'all' ? { branch: branchId } : {}),
+          isActive: true
+        })
+        .populate('course', 'title code price')
+        .populate('branch', 'name')
+        .populate('createdBy', 'fullName username')
+        .sort({ createdAt: -1 });
+
         reportData = {
-          'Student Report': [
-            { Metric: 'Total Students', Value: studentData.totalStudents || 0 },
-            { Metric: 'Active Students', Value: studentData.activeStudents || 0 },
-            { Metric: 'Graduated Students', Value: studentData.graduatedStudents || 0 },
-            { Metric: 'Average GPA', Value: studentData.averageGPA || 0 }
-          ]
+          'Students Details': students.map(student => ({
+            'Student ID': student.studentId,
+            'Full Name': student.fullName,
+            'Email': student.email,
+            'Phone': student.phone,
+            'Address': student.address,
+            'Date of Birth': student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : '',
+            'Course': student.course?.title || '',
+            'Course Code': student.course?.code || '',
+            'Branch': student.branch?.name || '',
+            'Status': student.status,
+            'Level': student.level,
+            'Enrollment Date': student.enrollmentDate ? new Date(student.enrollmentDate).toLocaleDateString() : '',
+            'Modules': student.modules.join(', '),
+            'Certifications': student.certifications.join(', '),
+            'Child/Baby Care': student.childBabyCare ? 'Yes' : 'No',
+            'Elder Care': student.elderCare ? 'Yes' : 'No',
+            'Hostel Requirement': student.hostelRequirement ? 'Yes' : 'No',
+            'Meal Requirement': student.mealRequirement ? 'Yes' : 'No',
+            'Birth Certificate': student.personalDocuments?.birthCertificate ? 'Yes' : 'No',
+            'Grama Niladhari Certificate': student.personalDocuments?.gramaNiladhariCertificate ? 'Yes' : 'No',
+            'Guardian/Spouse Letter': student.personalDocuments?.guardianSpouseLetter ? 'Yes' : 'No',
+            'Original Certificate': student.personalDocuments?.originalCertificate?.hasDocument ? 'Yes' : 'No',
+            'Original Certificate Title': student.personalDocuments?.originalCertificate?.title || '',
+            'Documents Count': student.documents?.length || 0,
+            'Created By': student.createdBy?.fullName || '',
+            'Created Date': student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '',
+            'Updated Date': student.updatedAt ? new Date(student.updatedAt).toLocaleDateString() : ''
+          }))
         };
-        filename = 'student_report';
+        filename = 'students_detailed_report';
         break;
 
       case 'courses':
@@ -376,39 +408,111 @@ router.get('/export', authenticateToken, async (req, res) => {
         break;
 
       case 'financial':
-        const [transData, budgetData] = await Promise.all([
-          Transaction.getStatistics(branchId, req.user.role, {
-            startDate: req.query.startDate,
-            endDate: req.query.endDate
-          }),
-          Budget.getStatistics(branchId, req.user.role, { period: req.query.period })
-        ]);
+        // Get detailed budget data
+        const Budget = require('../models/Budget');
+        const budgetQuery = {
+          ...(branchId && branchId !== 'all' ? { branch: branchId } : {}),
+          isActive: true
+        };
+
+        // Add period filter if provided
+        if (req.query.period) {
+          budgetQuery.period = req.query.period;
+        }
+
+        // Add date filters if provided
+        if (req.query.startDate || req.query.endDate) {
+          const dateFilter = {};
+          if (req.query.startDate) {
+            dateFilter.$gte = new Date(req.query.startDate);
+          }
+          if (req.query.endDate) {
+            dateFilter.$lte = new Date(req.query.endDate);
+          }
+          budgetQuery.$or = [
+            { startDate: dateFilter },
+            { endDate: dateFilter },
+            {
+              startDate: { $lte: req.query.endDate ? new Date(req.query.endDate) : new Date() },
+              endDate: { $gte: req.query.startDate ? new Date(req.query.startDate) : new Date() }
+            }
+          ];
+        }
+
+        const budgets = await Budget.find(budgetQuery)
+          .populate('branch', 'name')
+          .populate('createdBy', 'fullName username')
+          .populate('updatedBy', 'fullName username')
+          .sort({ createdAt: -1 });
 
         reportData = {
-          'Financial Report': [
-            { Metric: 'Total Income', Value: transData.totalIncome || 0 },
-            { Metric: 'Total Expenses', Value: transData.totalExpenses || 0 },
-            { Metric: 'Net Profit', Value: transData.netProfit || 0 },
-            { Metric: 'Pending Income', Value: transData.pendingIncome || 0 },
-            { Metric: 'Pending Expenses', Value: transData.pendingExpenses || 0 },
-            { Metric: 'Total Budgets', Value: budgetData.totalBudgets || 0 },
-            { Metric: 'Budget Utilization %', Value: budgetData.overallUtilization || 0 }
-          ]
+          'Budget Records': budgets.map(budget => ({
+            'Category': budget.category,
+            'Allocated Amount': budget.allocated,
+            'Spent Amount': budget.spent,
+            'Remaining Amount': Math.max(0, budget.allocated - budget.spent),
+            'Currency': budget.currency,
+            'Period': budget.period,
+            'Start Date': budget.startDate ? new Date(budget.startDate).toLocaleDateString() : '',
+            'End Date': budget.endDate ? new Date(budget.endDate).toLocaleDateString() : '',
+            'Description': budget.description || '',
+            'Status': budget.status,
+            'Utilization %': budget.allocated > 0 ? Math.round((budget.spent / budget.allocated) * 100) : 0,
+            'Branch': budget.branch?.name || '',
+            'Created By': budget.createdBy?.fullName || '',
+            'Updated By': budget.updatedBy?.fullName || '',
+            'Created Date': budget.createdAt ? new Date(budget.createdAt).toLocaleDateString() : '',
+            'Updated Date': budget.updatedAt ? new Date(budget.updatedAt).toLocaleDateString() : ''
+          }))
         };
-        filename = 'financial_report';
+        filename = 'budgets_detailed_report';
         break;
 
       case 'attendance':
-        // Mock attendance data - replace with actual attendance statistics
-        reportData = {
-          'Attendance Report': [
-            { Metric: 'Today Attendance %', Value: 85.5 },
-            { Metric: 'Weekly Average %', Value: 87.2 },
-            { Metric: 'Monthly Average %', Value: 86.8 },
-            { Metric: 'Total Students', Value: 233 }
-          ]
+        // Get detailed attendance data
+        const Attendance = require('../models/Attendance');
+        const attendanceQuery = {
+          ...(branchId && branchId !== 'all' ? { branch: branchId } : {}),
+          isActive: true
         };
-        filename = 'attendance_report';
+
+        // Add date filters if provided
+        if (req.query.startDate || req.query.endDate) {
+          attendanceQuery.date = {};
+          if (req.query.startDate) {
+            attendanceQuery.date.$gte = new Date(req.query.startDate);
+          }
+          if (req.query.endDate) {
+            attendanceQuery.date.$lte = new Date(req.query.endDate);
+          }
+        }
+
+        const attendanceRecords = await Attendance.find(attendanceQuery)
+          .populate('student', 'studentId fullName email phone')
+          .populate('course', 'title code')
+          .populate('branch', 'name')
+          .populate('markedBy', 'fullName username')
+          .sort({ date: -1, createdAt: -1 });
+
+        reportData = {
+          'Attendance Records': attendanceRecords.map(record => ({
+            'Date': record.date ? new Date(record.date).toLocaleDateString() : '',
+            'Student ID': record.student?.studentId || '',
+            'Student Name': record.student?.fullName || '',
+            'Student Email': record.student?.email || '',
+            'Student Phone': record.student?.phone || '',
+            'Course': record.course?.title || '',
+            'Course Code': record.course?.code || '',
+            'Branch': record.branch?.name || '',
+            'Status': record.status,
+            'Time In': record.timeIn || '',
+            'Notes': record.notes || '',
+            'Marked By': record.markedBy?.fullName || '',
+            'Marked Date': record.createdAt ? new Date(record.createdAt).toLocaleDateString() : '',
+            'Last Modified': record.updatedAt ? new Date(record.updatedAt).toLocaleDateString() : ''
+          }))
+        };
+        filename = 'attendance_detailed_report';
         break;
 
       default:
